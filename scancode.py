@@ -40,7 +40,7 @@ def main():
     files = iter_directory(source_dir)
     strs = set()
     for f in files:
-        strs += scanfile(f)
+        strs |= scanfile(f)
 
     f = open("strings_in_qzone", "w")
     for s in strs:
