@@ -12,3 +12,7 @@ scan iOS private api
 有其他想法的人欢迎提出来，大家一起出谋划策。
 
 ps最近苹果好像加强了对私有api的检测。
+
+## License
+
+This code is distributed under the terms and conditions of the GPL v2 license.
