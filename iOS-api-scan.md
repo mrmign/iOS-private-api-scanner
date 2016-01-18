@@ -1,4 +1,4 @@
-## iOS Qzone私有API扫描工作总结
+## iOS私有API扫描工作总结
 
 ### 背景
 苹果提供的iOS开发框架分PrivateFramework和Framework，PrivateFramework下的库是绝对不允许在提交的iOS应用中使用的，只允许使用Framework下那些公开的库。除了不能引入私有的库，也不能使用私有的API。如果你做了，结果很明显，你的应用就会被拒掉。
@@ -31,7 +31,7 @@ If you have defined methods in your source code with the same names as the above
 Additionally, one or more of the above-mentioned APIs may reside in a static library included with your application. *If you do not have access to the library's source, you may be able to search the compiled binary using "`strings`" or "`otool`" command line tools.* The "strings" tool can output a list of the methods that the library calls and "otool -ov" will output the Objective-C class structures and their defined methods. These techniques can help you narrow down where the problematic code resides.
 
 	这位就没那么幸运了，被拒了，不过Apple还算人性化，提供了方法来解决办法。
-3. 案例3（Qzone）
+3. 案例3（XXX）
    
    同样是因为	使用了一个私有的API，不过我们感觉有点冤，我们只是放那里并没有调用,`[self performSelector:@selector(_define:) withObject:obj afterDelay:10]`,一切被拒的原因都是因为`_define:`，这个api是私有的，苹果的文档里没有这个api，也不是我们自己定义的函数，被认为调用了私有api。
    
@@ -110,9 +110,9 @@ class-dump -H /Applications/Xcode.app/Contents/Developer/Platforms/	iPhoneSimula
 3. 现在需要获得那些没有文档的公开api了，从上面的分析知道他们存在于公开的库的头文件中，所以要对这些公开的头文件进行扫描，提取那些没有文档的api，这里得到的集合会第2步得到的集合有很大部分是重复的，这不影响最终结果，得到集合`set_C`。
 4. 得到最终的私有api集合 `set = set_A - set_B - set_C`。
 
-#### 针对Qzone进行具体的扫描工作
+#### 针对xxxx进行具体的扫描工作
 
-1. 将Qzone.ipa解压，得到Payload文件夹，用`strings`工具对`Payload/Qzone.app/Qzone`(这是个Mach-O文件)扫描，得到程序中可见的字符串**`strings`**。这里截取部分strings结果:<pre>
+1. 将xxxx.ipa解压，得到Payload文件夹，用`strings`工具对`Payload/xxxx.app/xxx`(这是个Mach-O文件)扫描，得到程序中可见的字符串**`strings`**。这里截取部分strings结果:<pre>
 encodeInt:forKey:
 rain
 setRain:
@@ -135,7 +135,7 @@ Td,VanimationInterval
 ...
 </pre>这里的strings结果中有定义的OC方法，属性，hardcode字符串，及其他编译时加入的代码。可以先从已知的进行排除，像hardcode字符串，可以通过扫描代码提取这部分字符串。
 2. 扫描源码，获得hardcode字符串，得到结果集**`str_set`**。
-3. 获得程序中自己定义的方法。这里使用`otool`，用`nm`也可以拿到方法，但是不能拿到属性及变量，所以这里用otoo拿到方法，属性及变量。`otool -ov ../../../Qzone`,截取部分进行说明:<pre>
+3. 获得程序中自己定义的方法。这里使用`otool`，用`nm`也可以拿到方法，但是不能拿到属性及变量，所以这里用otoo拿到方法，属性及变量。`otool -ov ../../../xxxx`,截取部分进行说明:<pre>
 Contents of (\_\_DATA,\_\_objc_classlist) section   **// 这里是程序中自己定义的所有类的开始部分**
 01dcf12c 0x1f62b30 \_OBJC\_CLASS\_$\_QZFlowerInfo
            isa 0x1f62b44 \_OBJC_METACLASS_$_QZFlowerInfo
@@ -270,18 +270,18 @@ instanceProperties 0x1ead5f8
 instanceProperties 0x0
 ...
 Contents of (\_\_DATA,\_\_objc\_classrefs) section  **//定义的类**
-01f5e8ec 0x1f6c3b0 \_OBJC\_CLASS\_$\_QzoneGuidePageView
-01f5e8f8 0x1f66cd0 \_OBJC\_CLASS\_$\_QzoneGuideView
+01f5e8ec 0x1f6c3b0 \_OBJC\_CLASS\_$\_xxxxGuidePageView
+01f5e8f8 0x1f66cd0 \_OBJC\_CLASS\_$\_xxxxGuideView
 01f5e900 0x1f780e8 \_OBJC\_CLASS\_$\_WnsLogger
 ...
 Contents of (\_\_DATA,\_\_objc_superrefs) section  **//定义的父类**
 01f60b4c 0x1f62b30 \_OBJC\_CLASS\_$\_QZFlowerInfo
 01f60b50 0x1f62b58 \_OBJC\_CLASS\_$\_QQGuideWindow
-01f60b54 0x1f62b80 \_OBJC\_CLASS\_$\_QzoneNewFeedDetailManager
+01f60b54 0x1f62b80 \_OBJC\_CLASS\_$\_xxxxNewFeedDetailManager
 01f60b58 0x1f62ba8 \_OBJC\_CLASS\_$\_inputBarCacheObject
 ...
 </pre>从上面的分析可以提取出方法，变量(**`set_B_i`**)，属性(**`set_B_p`**)，类名(**`set_B_c`**)了。
-4. 用`nm ../../Qzone`得到Mach-O中的符号表。<pre>
+4. 用`nm ../../xxxx`得到Mach-O中的符号表。<pre>
 0116f0ac t +[AFHTTPClient clientWithBaseURL:]
 0117cb08 t +[AFHTTPRequestOperation acceptableContentTypes]
 0117c7c8 t +[AFHTTPRequestOperation acceptableStatusCodes]
@@ -291,7 +291,7 @@ Contents of (\_\_DATA,\_\_objc_superrefs) section  **//定义的父类**
 011e2a90 t +[NSNumber(uniAttribute) doubleValueWithName:inAttributes:]
 ...
 </pre>很容易提取出类名与对应的方法,**`set_C`**。
-5. 查看应用都使用了哪些库，`otool -L ../.../Qzone`会看到使用的库**`set_Libs`**。
+5. 查看应用都使用了哪些库，`otool -L ../.../xxxx`会看到使用的库**`set_Libs`**。
 6. 从上面建立的私有api库中查询所有属于`set_Libs`的api，与步骤4中得到的方法做一个交集，得到了程序中定义的与私有api重名的那些api(set_Method)，至于这些api是否真的会导致被拒，需要人工审核差建立白名单，暂且称他们为**waring_apis**。<pre>
 APINAME  selectionChanged
 \------------------------------------------------------------ 库中定义相同方法的头文件
@@ -335,9 +335,8 @@ curve
 remove
 signature
 order
-</pre>以上即当前对Qzone进行的扫描工作。
+</pre>以上即当前对xxxx进行的扫描工作。
 
 #####总结
 通过以上各种方法，虽然可以看到某些可能“危险”的api, 但是结果还不是非常满意，需要人工来判断。还是需要再找找其他的方法，优化扫描结果。
 
-写在最后，感谢pettychen & wisonlin 的指导与帮助。
